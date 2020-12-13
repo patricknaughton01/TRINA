@@ -897,7 +897,7 @@ class Motion:
         self._controlLoopLock.acquire()
 
         formulation = 2
-        #if already in impedance control, then do not reset x_mass and x_dot_mass 
+        #if already in impedance control, then do not reset x_mass and x_dot_mass
         if (not limb.state.impedanceControl) or vectorops.norm(vectorops.sub(limb.state.toolCenter,tool_center)):
             limb.state.set_mode_reset()
             if formulation == 2:
@@ -914,9 +914,9 @@ class Motion:
             limb.state.T_g = copy(Tg)
         elif formulation == 1:
             limb.state.x_g = Tg[1] + so3.moment(Tg[0])
-        
+
         limb.state.impedanceControl = True
-        
+
         limb.state.x_dot_g = copy(x_dot_g)
         limb.state.K = np.copy(K)
         limb.state.counter = 1
@@ -1143,7 +1143,7 @@ class Motion:
         else:
             logger.warning('Head not enabled.')
             print('Head not enabled.')
-            
+
     def sensedBaseVelocity(self):
         """Returns the current base velocity
 
@@ -1720,7 +1720,7 @@ class Motion:
                 limb.state.driveSpeedAdjustment += 0.1
 
         self.robot_model.setConfig(initialConfig)
-        
+
         # NOTE: LimbController only takes python floats!!! THIS IS DANGEROUS!
         return 2,target_config.tolist() #2 means success..
 
@@ -1777,6 +1777,15 @@ class Motion:
         """
         state = limb.state
         wrench = limb.sensedEEWrench(frame = 'global')
+        # Inertia compensation
+        dt = 1 / 250
+        v = np.array(limb.sensedEEVelocity())
+        a = (v - np.array(limb.last_v)) / dt
+        m = np.eye(6)
+        m[3:,3:] = limb.EE_inertia
+        inertia_wrench = np.matmul(m, a)
+        wrench = vectorops.add(wrench, inertia_wrench.tolist())
+        limb.last_v = v
         #if force too big, backup a bit and stop
         stop = False
         if vectorops.norm_L2(wrench[0:3]) > 60:
@@ -1817,7 +1826,7 @@ class Motion:
 
             state.T_mass, state.x_dot_mass = self._simulate_2(wrench = wrench,m_inv = state.Minv,\
                 K = state.K,B = effective_b,T_curr = state.T_mass,x_dot_curr = state.x_dot_mass,\
-                T_g = state.T_g,x_dot_g = state.x_dot_g,dt = self.dt) 
+                T_g = state.T_g,x_dot_g = state.x_dot_g,dt = self.dt)
             state.counter += 1
 
             state.prev_wrench = np.array(wrench)
@@ -1864,4 +1873,3 @@ if __name__=="__main__":
     #     f.write(f"\n{str(robot.getKlamptSensedPosition())}")
     time.sleep(30.1)
     robot.shutdown()
-

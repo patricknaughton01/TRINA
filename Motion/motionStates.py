@@ -57,7 +57,7 @@ class Limb:
 
         self.controller = controller
         self.enabled = controller is not None
-        
+
         self.state = LimbState()
 
         if self.enabled:
@@ -191,7 +191,7 @@ class Limb:
 
 class LimbState:
     def __init__(self):
-        
+
         self.sensedq = [0.0,0.0,0.0,0.0,0.0,0.0]
         self.commandedq = []
         self.difference = []
@@ -222,6 +222,7 @@ class LimbState:
         self.driveSpeedAdjustment = 1.0
         self.cartesianMode = 0 # 0 means both translation and rotation, 2 only rotation, 1 only position
         self.toolCenter = [0,0,0]
+        self.EE_inertia = np.eye(3)
 
         ##handling impedance control
         self.impedanceControl = False
@@ -234,6 +235,7 @@ class LimbState:
         #mass transform and velocity
         self.T_mass = []
         self.x_dot_mass = []
+        self.last_v = [0] * 6
         #counter for how many iterations have passed
         self.counter = 1
         #range for ignoring the wrench readings
