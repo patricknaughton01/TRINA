@@ -19,13 +19,10 @@ import sys
 import time
 import redis
 from Motion import MotionClient
-
-# from Modules import *
-# import command_server
+from Utils import parseCommand
 
 
 class Jarvis:
-
 	def __init__(self, name, sensor_module=[], trina_queue=None, host="localhost"):
 		self.interface = RedisInterface(host=host)
 		self.interface.initialize()
@@ -41,7 +38,7 @@ class Jarvis:
 		# HOTFIX
 		robot_ip = 'http://localhost:8080'
 		self.robot = MotionClient(address = robot_ip)
-		
+
 	def setPosition(self, q):
 		"""set the position of the entire robot
 
@@ -50,7 +47,7 @@ class Jarvis:
         q: a merged list of joint positions, in the order of torso,base,left limb, right limb, left gripper...
         """
 		return 0
-	
+
 	def mirror_arm_config(self,config):
 		"""given the Klampt config of the left or right arm, return the other
 
@@ -272,7 +269,7 @@ class Jarvis:
         Return:
         ------------
         bool
-        """		
+        """
 		return self.server['ROBOT_INFO']['Moving'].read()
 
 	def mode(self):
@@ -432,7 +429,7 @@ class Jarvis:
         None
         """
 		command = self.send_command('self.robot.setRightLimbPositionImpedance',
-				str(q),str(K),str(M),str(B),str(x_dot_g),str(deadband))		
+				str(q),str(K),str(M),str(B),str(x_dot_g),str(deadband))
 
 	def getWorld(self):
 		""" Return the simulated robot
@@ -576,17 +573,9 @@ class Jarvis:
         (R,t)
         """
 		#return self.server["ROBOT_STATE"]["PositionEE"]["LeftArm"].read()
-		return self.robot.sensedLeftEETransform(tool_center=tool_center)
-	
-	def sensedLeftEETransformTool(self, tool_center=[0,0,0]):
-		"""Return the transform w.r.t. the tool frame
-
-        Return:
-        -------------
-        (R,t)
-        """
-		return self.robot.sensedLeftEETransform(tool_center=tool_center)
-		
+		# HOTFIX, should not be accessing Motion Client directly
+		return self.robot.send_command(parseCommand(
+			'robot.sensedLeftEETransform', tool_center))
 
 	def sensedRightEETransform(self):
 		"""Return the transform w.r.t. the base frame
@@ -628,7 +617,7 @@ class Jarvis:
 		return self.server["ROBOT_STATE"]["Position"]["LeftArm"].read()
 
 	def getActivityStatus(self):
-		"""Returns the module activity 
+		"""Returns the module activity
 
         Return:
         --------------
@@ -655,14 +644,7 @@ class Jarvis:
 		return self.sensor_module.get_rgbd_images()
 
 	def send_command(self, command, *args):
-		final_string = str(command) + '('
-		for index, arg in enumerate(args):
-			if(index != len(args)-1):
-				final_string += '{},'
-			else:
-				final_string += '{}'
-		final_string = (final_string + ')')
-		final_string = final_string.format(*args)
+		final_string = parseCommand(command, *args)
 		self.trina_queue.push(final_string)
 		print('sending ',final_string)
 
@@ -685,7 +667,7 @@ class Jarvis:
 ############################# All Mighty divider between motion and UI ###############################
 	def sendRayClickUI(self):
 
-		"""once this function is called, the UI will ask the user to click twice on the map, and sending back 
+		"""once this function is called, the UI will ask the user to click twice on the map, and sending back
 		2 ray objects according to the user clicks. first one for destination, second one for calibration
 		return:
 			id: (str) id for ui feedback
@@ -697,9 +679,9 @@ class Jarvis:
 		# ask the user to click on a destination in the map, returns 2 rays in reem
 		self._do_rpc({'funcName': 'getRayClick', 'args': {'id': str(id)}})
 		return id
-		
+
 	def getRayClickUI(self,id):
-		"""get the feedback of Ray Click of id. 
+		"""get the feedback of Ray Click of id.
 		return:
 			'NOT READY': (str) if the msg is not ready
 			or
@@ -715,11 +697,11 @@ class Jarvis:
 		return self.getFeedback(id)
 
 	def sendAndGetRayClickUI(self):
-		"""once this function is called, the UI will ask the user to click twice on the map, and sending back 
+		"""once this function is called, the UI will ask the user to click twice on the map, and sending back
 		2 ray objects according to the user clicks. first one for destination, second one for calibration
-		
+
 		return:
-			
+
 			{
 				'FIRST_RAY': {'destination': [-0.8490072256426063,-0.2846905378876157,-0.4451269801347757],
 							'source': [12.653596500469428, 1.6440497080649081, 5.851982763380186]},
@@ -737,14 +719,14 @@ class Jarvis:
 		return reply
 
 	def addTextUI(self, name, text, color, size):
-		"""add text to specfified location on UI screen. 
+		"""add text to specfified location on UI screen.
 		args:
 			name: (str) id for the text object
 			text: (str) content you wish to add
 			color: (list) rgb value [0,0,0]
 			size: (int) font size
 		return:
-			name: (str) the name/id the user gave 
+			name: (str) the name/id the user gave
 		blocking?:
 			no
 		"""
@@ -753,8 +735,8 @@ class Jarvis:
 		return name
 
 	def sendConfirmationUI(self,title,text):
-		"""once this function is called, the UI will display a confimation window with specified title and text, 
-		
+		"""once this function is called, the UI will display a confimation window with specified title and text,
+
 		return:
 			id: (str) id for ui feedback
 		blocking?:
@@ -765,9 +747,9 @@ class Jarvis:
 		self._do_rpc({'funcName': 'addConfirmation', 'args': {
 						'id': str(id), 'title': title, 'text': text}})
 		return id
-		
+
 	def getConfirmationUI(self,id):
-		"""get the feedback of Confirmation Window of id. 
+		"""get the feedback of Confirmation Window of id.
 		return:
 			'NOT READY': (str) if the msg is not ready
 			or
@@ -779,7 +761,7 @@ class Jarvis:
 
 
 	def sendAndGetConfirmationUI(self,title,text):
-		"""once this function is called, the UI will display a confimation window with specified title and text, 
+		"""once this function is called, the UI will display a confimation window with specified title and text,
 			a string of 'YES' or "NO" is returned
 		args:
 			text: (str) content you wish to add
@@ -797,8 +779,8 @@ class Jarvis:
 		return reply
 
 	def sendTrajectoryUI(self,trajectory,animate = False):
-		"""send a trajectory to UI, UI will add the path preview and animate? the robot ghost immediately for only once 
-		
+		"""send a trajectory to UI, UI will add the path preview and animate? the robot ghost immediately for only once
+
 		args:
 			trajectory: (klampt obj) the traj calculated
 			animate: (bool) if user wants to animate the path
@@ -819,7 +801,7 @@ class Jarvis:
 			text: (str) button label text
 		return:
 			name: the id user gave
-		
+
 		blocking?:
 			no
 		"""
@@ -834,7 +816,7 @@ class Jarvis:
 			name: (str) id for the button object
 		return:
 			(bool) True or False
-		
+
 		blocking?:
 			no
 		"""
@@ -888,7 +870,7 @@ class Jarvis:
 		self.server["UI_END_COMMAND"] = commandQueue
 		print("commandQueue", commandQueue)
 		time.sleep(0.0001)
-		
+
 # extra trina queue class:
 
 class TrinaQueue(object):
