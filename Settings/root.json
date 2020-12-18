@@ -1,0 +1,32 @@
+{
+    "robot": "@robot_bubonic.json",
+    "user": {
+        "configs":"@anthrax/configs.json"
+    },
+    "MotionServer": {
+        "mode": "Kinematic",
+        "ip_address":"127.0.0.1",
+        "port":8080,
+        "components":["left_limb","right_limb"]
+    },
+    "RedisServer": {
+        "ip_address":"localhost"
+    },
+    "CommandServer":{
+        "state_receiver_dt":0.015,
+        "command_receiver_dt":0.001,
+        "heartbeat_tolerance":100000000000
+    },
+    "Simulation":{
+        "world_file":"Models/simulation_worlds/TRINA_world_bubonic.xml"
+    },
+    "DebugUI": {
+        "world_file":"Models/simulation_worlds/TRINA_world_bubonic.xml"
+    },
+    "CalibrationModule" : {
+        "right_calibration_configs": "calibration/right_sensor_calibration.configs",
+        "left_calibration_configs": "calibration/right_sensor_calibration.configs",
+        "fixed_calibration_configs": "calibration/fixed_sensor_calibration.configs"
+    }
+    
+}

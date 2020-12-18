@@ -30,10 +30,6 @@ def cleanup():
   pass
 
 
-model_config_length = 43
-base_indeces = [0,3]
-left_limb_indexes = [10,16]
-right_limb_indexes = [27,33]
 class KinematicController:
     def __init__(self, model_path,codename):
         self.left_limb_state = LimbState()
@@ -133,9 +129,9 @@ class KinematicController:
                         dq_to_be_set.append(-self.limb_velocity_limit)
                     else:
                         dq_to_be_set.append(command)
-                left_limb_to_be_set = vectorops.add(self.left_limb_state.sensedq,vectorops.mul(dq_to_be_set,dt))
+                left_limb_to_be_set = vectorops.add(self.left_limb_state.sensedq,vectorops.mul(dq_to_be_set,self.dt))
                 left_limb_to_be_set ,flag = self._limitLimbPosition(left_limb_to_be_set)
-                self.left_limb_state.senseddq = vectorops.div(vectorops.sub(dq_to_be_set,self.left_limb_state.sensedq),dt)
+                self.left_limb_state.senseddq = vectorops.div(vectorops.sub(dq_to_be_set,self.left_limb_state.sensedq),self.dt)
                 self.left_limb_state.sensedq = deepcopy(left_limb_to_be_set)
             #right limb
             right_limb_to_be_set = []
@@ -154,7 +150,7 @@ class KinematicController:
                 right_limb_to_be_set,flag = self._limitLimbPosition(right_limb_to_be_set)
                 self.right_limb_state.sensedq = deepcopy(right_limb_to_be_set)
                 self.right_limb_state.senseddq = vectorops.div(vectorops.sub(right_limb_to_be_set,self.right_limb_state.sensedq),self.dt)
-            elif right_limb_state.commandType == 1:
+            elif self.right_limb_state.commandType == 1:
                 for i in range(6):
                     command = self.right_limb_state.commandeddq[i]
                     if command > self.limb_velocity_limit:
@@ -163,9 +159,9 @@ class KinematicController:
                         dq_to_be_set.append(-self.limb_velocity_limit)
                     else:
                         dq_to_be_set.append(command)
-                right_limb_to_be_set = vectorops.add(self.right_limb_state.sensedq,vectorops.mul(dq_to_be_set,dt))
+                right_limb_to_be_set = vectorops.add(self.right_limb_state.sensedq,vectorops.mul(dq_to_be_set,self.dt))
                 right_limb_to_be_set ,flag = self._limitLimbPosition(right_limb_to_be_set)
-                self.right_limb_state.senseddq = vectorops.div(vectorops.sub(dq_to_be_set,self.right_limb_state.sensedq),dt)
+                self.right_limb_state.senseddq = vectorops.div(vectorops.sub(dq_to_be_set,self.right_limb_state.sensedq),self.dt)
                 self.right_limb_state.sensedq = deepcopy(right_limb_to_be_set)
 
             if flag:
@@ -252,6 +248,11 @@ class KinematicController:
     def shutdown(self):
         self.shut_down = True
         return
+
+    def stopMotion(self):
+        self.setBaseVelocity([0]*2)
+        self.left_limb_state.set_mode_velocity([0]*6)
+        self.right_limb_state.set_mode_velocity([0]*6)
 
     def _setKlamptModelConfig(self):
     	q = [0] + self.left_limb_state.sensedq + [0, 0] + self.right_limb_state.sensedq + [0]

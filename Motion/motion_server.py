@@ -20,50 +20,14 @@ Marshaller.dispatch[np.ndarray] = Marshaller.dump_array
 
 global robot
 global server_started
+global server_components
+
 server_started = False
-
-ip_address = 'localhost'
-port = 8080
-
-def sigint_handler(signum,frame):
-	global robot
-	global server_started
-	if server_started:
-		robot.shutdown()
-	sys.exit(0)
-
-server = SimpleXMLRPCServer((ip_address,port), logRequests=False)
-server.register_introspection_functions()
-signal.signal(signal.SIGINT, sigint_handler)
 
 import traceback
 from functools import wraps
 
-def xmlrpcMethod(name):
-    """
-    Decorator that registers a function to the xmlrpc server under the given name.
-    """
-    def register_wrapper(f):
-        server.register_function(f, name)
-        return f
-    return register_wrapper
 
-def loggedMethod(f):
-    """
-    Decorator that adds stack trace dumping (stdout and logger) to a function.
-    """
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            tb = traceback.format_exc()
-            logger.error(tb)
-            print(tb)
-            raise e
-    return wrapper
-
-@xmlrpcMethod("runCommand")
 def _runCommand(command):
 	env = {'robot':robot, 'startServer':startServer,
 		'restartServer':restartServer}
@@ -99,9 +63,41 @@ def restartServer(mode="Kinematic", components=[], codename="seed"):
 	print("server started")
 	return 0
 
-print('#######################')
-print('#######################')
-logger.info("Server Created")
-print('Server Created')
-##run server
-server.serve_forever()
+
+def run_server_forever(ip_address,port):
+	server = SimpleXMLRPCServer((ip_address,port), logRequests=False)
+	server.register_introspection_functions()
+	signal.signal(signal.SIGINT, sigint_handler)
+
+	##add functions...
+	server.register_function(_runCommand, 'runCommand')
+	##
+	print('#######################')
+	print('#######################')
+	logger.info("Server Created")
+	print('Server Created')
+	##run server
+	server.serve_forever()
+
+if __name__ == '__main__':
+	import os,sys
+	sys.path.append(os.path.expanduser("~/TRINA"))
+	from Settings import trina_settings
+	import argparse
+	parser = argparse.ArgumentParser(description='Runs the motion server')
+	parser.add_argument('-a','--ip', default='127.0.0.1', type=str, help='Server\'s IP address')
+	parser.add_argument('-p','--port', default=trina_settings.motion_server_port(), type=int, help='Server\'s port number')
+	parser.add_argument('--components', default=trina_settings.motion_server_components(), type=str, nargs='+', help='List of active components')
+	parser.add_argument('--codename', default=trina_settings.robot_codename(), type=str, help="The robot model's codename")
+	parser.add_argument('-m', '--mode', default=trina_settings.motion_server_mode(), type=str, help='The mode (Kinematic or Physical)')
+
+	print()
+	print("USAGE:")
+	print()
+	print("   motion_server.py [OPTIONS]")
+	print()
+	parser.print_help()
+	args = parser.parse_args(sys.argv[1:])
+
+	startServer(args.mode,args.components,args.codename)
+	run_server_forever(args.ip,args.port)
