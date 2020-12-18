@@ -29,6 +29,7 @@ from functools import wraps
 
 
 def _runCommand(command):
+	global robot
 	env = {'robot':robot, 'startServer':startServer,
 		'restartServer':restartServer}
 	exec('ret = ' + command)
