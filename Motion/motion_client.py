@@ -23,14 +23,14 @@ class MotionClient:
 		self.s = ServerProxy(address)
 		self.shut_down = False
 
-	def send_command(self, command):
-		return self.s.run_command(command)
+	def sendCommand(self, command):
+		return self.s.runCommand(command)
 
 if __name__=="__main__":
 	motion = MotionClient('http://localhost:8080')
-	motion.send_command(parseCommand('startServer', 'Kinematic',
+	motion.sendCommand(parseCommand('startServer', 'Kinematic',
 		['right_limb','left_limb'], 'bubonic'))
-	motion.send_command('robot.startup')
+	motion.sendCommand('robot.startup')
 	time.sleep(0.05)
-	print(motion.send_command('robot.sensedLeftEEWrench'))
-	motion.send_command('robot.shutdown')
+	print(motion.sendCommand('robot.sensedLeftEEWrench'))
+	motion.sendCommand('robot.shutdown')

@@ -437,13 +437,13 @@ def stateReceiver_func(redis_addr,robot_addr):
 	velEE_right = {}
 
 	robot = MotionClient(address = robot_addr)
-	res = robot.startup()
+	res = robot.sendCommand('robot.startup')
 	if not res:
 		print('Failed!')
 
-	mode = robot.mode()
-	codename = robot.codename()
-	components = robot.activeComponents()
+	mode = robot.sendCommand('robot.mode')
+	codename = robot.sendCommand('robot.codename')
+	components = robot.sendCommand('robot.activeComponents')
 	left_limb_active = ('left_limb' in components)
 	right_limb_active = ('right_limb' in components)
 	base_active = ('base' in components)
@@ -456,41 +456,50 @@ def stateReceiver_func(redis_addr,robot_addr):
 		try:
 			#t0 = time.time()
 			if(left_limb_active):
-				posEE_left = robot.sensedLeftEETransform()
-				pos_left = robot.sensedLeftLimbPosition()
-				vel_left = robot.sensedLeftLimbVelocity()
-				velEE_left = robot.sensedLeftEEVelocity()
-				global_EEWrench_left = robot.sensedLeftEEWrench('global')
-				local_EEWrench_left = robot.sensedLeftEEWrench('local')
+				posEE_left = robot.sendCommand('robot.sensedLeftEETransform')
+				pos_left = robot.sendCommand('robot.sensedLeftLimbPosition')
+				vel_left = robot.sendCommand('robot.sensedLeftLimbVelocity')
+				velEE_left = robot.sendCommand('robot.sensedLeftEEVelocity')
+				global_EEWrench_left = robot.sendCommand(
+					parseCommand('robot.sensedLeftEEWrench', 'global'))
+				local_EEWrench_left = robot.sendCommand(
+					parseCommand('robot.sensedLeftEEWrench', 'local'))
 
 			if(right_limb_active):
-				posEE_right = robot.sensedRightEETransform()
-				pos_right = robot.sensedRightLimbPosition()
-				vel_right = robot.sensedRightLimbVelocity()
-				velEE_right = robot.sensedRightEEVelocity()
-				global_EEWrench_right = robot.sensedRightEEWrench('global')
-				local_EEWrench_right = robot.sensedRightEEWrench('local')
+				posEE_right = robot.sendCommand('robot.sensedRightEETransform')
+				pos_right = robot.sendCommand('robot.sensedRightLimbPosition')
+				vel_right = robot.sendCommand('robot.sensedRightLimbVelocity')
+				velEE_right = robot.sendCommand('robot.sensedRightEEVelocity')
+				global_EEWrench_right = robot.sendCommand(
+					parseCommand('robot.sensedRightEEWrench', 'global'))
+				local_EEWrench_right = robot.sendCommand(
+					parseCommand('robot.sensedRightEEWrench', 'local'))
 
 			if(base_active):
-				pos_base = robot.sensedBasePosition()
-				vel_base = robot.sensedBaseVelocity()
+				pos_base = robot.sendCommand('robot.sensedBasePosition')
+				vel_base = robot.sendCommand('robot.sensedBaseVelocity')
 
 			klampt_q = TRINAConfig.get_klampt_model_q(codename,left_limb = pos_left, right_limb = pos_right, base = pos_base)
-			klampt_command_pos = robot.getKlamptCommandedPosition()
-			klampt_sensor_pos = robot.getKlamptSensedPosition()
+			klampt_command_pos = robot.sendCommand(
+				'robot.getKlamptCommandedPosition')
+			klampt_sensor_pos = robot.sendCommand(
+				'robot.getKlamptSensedPosition')
 			if(left_gripper_active):
-				pos_left_gripper = robot.sensedLeftGripperPosition()
+				pos_left_gripper = robot.sendCommand(
+					'robot.sensedLeftGripperPosition')
 			if(right_gripper_active):
-				pos_right_gripper = robot.sensedRightGripperPosition()
+				pos_right_gripper = robot.sendCommand(
+					'robot.sensedRightGripperPosition')
 			if(torso_active):
-				pos_torso = robot.sensedTorsoPosition()
+				pos_torso = robot.sendCommand(
+					'robot.sensedTorsoPosition')
 
 			#t1 = time.time()
 			#print("Read robot info in time",t1-t0)
 
 			server["ROBOT_INFO"] = {
-				"Started" : robot.isStarted(),
-				"Shutdown" : robot.isShutDown(),
+				"Started" : robot.sendCommand('robot.isStarted'),
+				"Shutdown" : robot.sendCommand('robot.isShutDown'),
 				"Moving" : True,#robot.moving(),
 				"CartesianDrive" : True,#robot.cartesianDriveFail(),
 				"Components" : components,
